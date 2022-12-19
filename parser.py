@@ -50,15 +50,19 @@ s = requests.Session()
 print(f'Версия парсера {VERSION}')
 print('Парсер запущен ...')
 
+# GET запрос базового url для парсинга токена формы
 response = s.get(url, params=params, headers=headers)
 
+# Создание DOM объекта страницы с формой входа
 dom = html.fromstring(response.content)
 user_form = dom.xpath("//div[@class='col-md-9']/form")
 
+# Парсим токен из формы
 for item in user_form:
     ReturnUrl = item.xpath("input[@name='ReturnUrl']/@value")[0]
     RequestVerificationToken = item.xpath("input[@name='__RequestVerificationToken']/@value")[0]
 
+# Формируем параметры url и данные для POST запроса авторизации
 params = {
     "ReturnUrl": ReturnUrl
 }
@@ -69,9 +73,12 @@ data = {
     "__RequestVerificationToken": RequestVerificationToken,
 }
 
+# Авторизуемся
 print('Parsing.. Страница авторизации')
 response_2 = s.post(login_url, params=params, data=data, headers=headers)
 
+# Создаем объект скрытой формы, сформированной в ответе на форму авторизации, для проверки данных.
+# Парсим данные из скрытой формы для проверки и передачи необходимых параметров
 dom_2 = html.fromstring(response_2.content)
 sign_form = dom_2.xpath('//form')
 
@@ -88,25 +95,37 @@ check_data = {
     'session_state': session_state
 }
 
+# Проходим проверку
 check_response = s.post(check_url, data=check_data, headers=headers)
 
 print('Parsing.. Страница модулей')
 
+# Парсим страницу "Курсы" для поиска url перехода на следующую страницу
 dom = html.fromstring(check_response.content).xpath(f"{path}/a/@href")[0]
+
+# Формируем url для перехода на следующую страницу
 online_url = base_url + dom
+
+# GET запрос следующей страницы
 online = s.get(online_url)
 
+# Парсим страницу "Код будущего" для поиска url перехода на следующую страницу
 dom = html.fromstring(online.content).xpath(path)
 href = dom[0].xpath('a/@href')[0]
 
+# Формируем url для перехода на следующую страницу
 course_url = base_url + href
+
+# GET запрос следующей страницы
 response = s.get(course_url)
 
 print('Parsing.. Формируем карточки.')
 
+# Парсим страницу "Онлайн" для формирования списка доступных модулей
 dom = html.fromstring(response.content).xpath(path)
 cards = []
 
+# Находим все доступные модули и формируем словарь с наименованием курса и ссылкой для перехода
 for card in dom:
     card_url = card.xpath("a/@href")[0]
     card_name = card.xpath(
@@ -127,6 +146,7 @@ print('=' * 50)
 
 sel = int(input('Какой модуль использовать? _ '))
 
+# Формируем наименование выбранного модуля и ссылку для перехода
 try:
     get_card = list(cards[sel].values())[0]
     card_names = list(cards[sel].keys())[0]
@@ -134,17 +154,24 @@ except (IndexError,):
     print('Нет такого модуля.')
     sys.exit()
 
+# Переходим на страницу выбранного модуля
 response = s.get(get_card)
+
+# Парсим страницу модуля для формирования ссылки на журнал
 get_card_url = base_url + html.fromstring(response.content).xpath("//a[@id='training-Progress']/@href")[0]
 trainings = f'{trainings_url}/{get_card_url.split("/")[5]}'
 get_trainings = f'{trainings}/groups'
+
+# Переходим в журнал и получаем json объект всех преподавателей модуля
 teachers = s.get(get_trainings).json()
 
+# Создание файла json со списком преподавателей текущей группы
 with open(os.path.join(f'{teachers_path}', f"{card_names}.json"), 'w+', encoding="utf8") as f:
     json.dump(teachers, f, ensure_ascii=False, indent=4)
 
 keys = {}
 
+# Ищем в списке преподавателей свою фамилию и формируем словарь с id и фамилией
 for teacher in teachers:
     teach_id = list(teacher.values())
 
@@ -153,6 +180,7 @@ for teacher in teachers:
 
 key = 0
 
+# Если на данном направлении несколько групп, разрешаем выбор необходимой группы
 if len(keys) > 1:
     print(f"\nУ вас {len(keys)} группы в данном модуле.")
     print('=' * 50)
@@ -169,13 +197,19 @@ if len(keys) > 1:
     except (IndexError,):
         print('Нет такой группы.')
         sys.exit()
+
+# Если группа только одна
 elif len(keys) == 1:
     key = list(keys.values())[0]
     FULL_NAME = list(keys.keys())[0]
+
+# Если группа еще не сформирована, либо отсутствует
 else:
     print('В данной группе нет учеников.')
     sys.exit()
 
+# Создаем словарь параметров для фильтрации по фамилии, в качестве ключа передаем id преподавателя.
+# Кол-во записей на странице - 50
 data = {
     'start': 0,
     'length': 50,
@@ -184,12 +218,22 @@ data = {
     'group': key,
     'work': '20, 30'
 }
+
 print('\nParsing.. Ожидаем ответ от сервера.')
+
+# Фильтруем страницу
 try:
     response = s.post(f'{trainings}/ProgressLightweight', params=data)
     print('Parsing.. Ответ получен.')
 except ConnectionError:
     print('Вышло время ожидания.... (')
 
+# Создание файла журнала текущей группы в формате json
 with open(os.path.join(f'{events_path}', f"{FULL_NAME}.json"), 'w', encoding='utf8') as f:
     json.dump(response.json(), f, ensure_ascii=False, indent=4)
+
+# ========================================================
+#      Парсим json и формируем журнал в формате xlsx
+# ========================================================
+
+
