@@ -3,6 +3,7 @@ import sys
 import json
 import pathlib
 import requests
+import pandas as pd
 from lxml import html
 from pathlib import Path
 from dotenv import load_dotenv
@@ -22,10 +23,13 @@ scope = None
 state = None
 session_state = None
 key_teacher = None
-Path(pathlib.Path.cwd(), "teachers").mkdir(parents=True, exist_ok=True)
-Path(pathlib.Path.cwd(), "events").mkdir(parents=True, exist_ok=True)
-teachers_path = os.path.join(pathlib.Path.cwd(), 'teachers')
-events_path = os.path.join(pathlib.Path.cwd(), 'events')
+
+Path(pathlib.Path.cwd(), "json", "teachers").mkdir(parents=True, exist_ok=True)
+Path(pathlib.Path.cwd(), "json", "events").mkdir(parents=True, exist_ok=True)
+Path(pathlib.Path.cwd(), "EXCEL").mkdir(parents=True, exist_ok=True)
+teachers_path = os.path.join(pathlib.Path.cwd(), 'json', 'teachers')
+events_path = os.path.join(pathlib.Path.cwd(), 'json', 'events')
+xlsx_path = os.path.join(pathlib.Path.cwd(), 'EXCEL')
 
 path = "//div[@class='events-left-block w-100 col-lg-6 mb-4xl']"
 
@@ -75,11 +79,11 @@ data = {
 
 # Авторизуемся
 print('Parsing.. Страница авторизации')
-response_2 = s.post(login_url, params=params, data=data, headers=headers)
+response = s.post(login_url, params=params, data=data, headers=headers)
 
 # Создаем объект скрытой формы, сформированной в ответе на форму авторизации, для проверки данных.
 # Парсим данные из скрытой формы для проверки и передачи необходимых параметров
-dom_2 = html.fromstring(response_2.content)
+dom_2 = html.fromstring(response.content)
 sign_form = dom_2.xpath('//form')
 
 for item in sign_form:
@@ -235,5 +239,37 @@ with open(os.path.join(f'{events_path}', f"{FULL_NAME}.json"), 'w', encoding='ut
 # ========================================================
 #      Парсим json и формируем журнал в формате xlsx
 # ========================================================
+data = response.json().get('data')
 
+columns = []
+for i in range(1, len(data[0].get('exercises')) + 1):
+    columns.append(i)
 
+students = []
+values = []
+
+for student_dict in data:
+    val = []
+
+    surname = student_dict.get('surname')
+    firstname = student_dict.get('firstname')
+    patronymic = student_dict.get('patronymic')
+    student_name = f'{surname} {firstname} {patronymic}'
+    students.append(student_name)
+
+    exercises = student_dict.get('exercises')  # Получаем список с домашними заданиями ученика
+    for i in exercises:
+        if i.get('light') == 'text-gray':
+            val.append('-')
+        if i.get('light') == 'text-green':
+            val.append(str(round(float(i.get('average')), 2)))
+        if i.get('light') == 'text-red':
+            val.append('Сдано')
+    values.append(val)
+
+df = pd.DataFrame(values, index=students, columns=columns)
+df.to_excel(os.path.join(f'{xlsx_path}', f'{card_names}.xlsx'),
+            sheet_name='events')  # Название файла по наименованию направления
+# df.to_excel(os.path.join(f'{xlsx_path}', f'{FULL_NAME}.xlsx'),
+            # sheet_name='events') # Название файла по преподавателю
+print('Parsing.. Done.')
