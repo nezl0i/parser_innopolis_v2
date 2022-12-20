@@ -87,7 +87,7 @@ print(f"\nУ вас {len(dom)} модуля.")
 print('=' * 50)
 
 for i in range(len(cards)):
-    print(f'{i}. {[key for key in cards[i].keys()][0]}')
+    print(f'{i}. {list(cards[i].keys())[0]}')
 
 print('=' * 50)
 
@@ -205,7 +205,7 @@ for student_dict in data:
         if i.get('light') == 'text-gray':
             val.append('-')
         if i.get('light') == 'text-green':
-            val.append(str(round(float(i.get('average')), 2)))
+            val.append(f'{i.get("average"):.2f}')
         if i.get('light') == 'text-red':
             val.append('Сдано')
     values.append(val)
