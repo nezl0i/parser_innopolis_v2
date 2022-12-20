@@ -8,6 +8,8 @@ from pathlib import Path
 from authorization import auth
 from dotenv import load_dotenv
 from requests.exceptions import ConnectionError
+import io
+import zipfile
 
 load_dotenv()
 
@@ -30,10 +32,12 @@ path = "//div[@class='events-left-block w-100 col-lg-6 mb-4xl']"
 with open('version', encoding='utf8') as f:
     VERSION = f.read()
 
+# Ссылка на файл из журнала https://learn.innopolis.university/Instructors/Trainings/77af0642-e60e-4d8d-2f2f-08da7915eec2/Results/Files?work=00000000-0000-0000-0000-000000000000&exercise=70f7448d-16fc-4b0c-b181-08da79d25cfe&student=c0d85dbb-a41c-4e7e-a32b-08dac31db6c3
+# Ссылка на файл из ДЗ https://learn.innopolis.university/files/f7142304477a46849537226f361c8528.py
 base_url = 'https://learn.innopolis.university'
 instructors_url = 'https://learn.innopolis.university/Instructors'
 trainings_url = 'https://learn.innopolis.university/api/instructors/trainings'
-
+files_url = 'https://learn.innopolis.university/Instructors/Trainings/{}/Results/Files?work=00000000-0000-0000-0000-000000000000&exercise={}&student={}'
 
 print(f'Версия парсера {VERSION}')
 print('Парсер запущен ...')
@@ -106,7 +110,8 @@ response = s.get(get_card)
 
 # Парсим страницу модуля для формирования ссылки на журнал
 get_card_url = base_url + html.fromstring(response.content).xpath("//a[@id='training-Progress']/@href")[0]
-trainings = f'{trainings_url}/{get_card_url.split("/")[5]}'
+card_id = get_card_url.split("/")[5]  # ID модуля
+trainings = f'{trainings_url}/{card_id}'
 get_trainings = f'{trainings}/groups'
 
 # Переходим в журнал и получаем json объект всех преподавателей модуля
@@ -160,10 +165,8 @@ else:
 data = {
     'start': 0,
     'length': 50,
-    'search[value]': '',
-    'search[regex]': 'false',
     'group': key,
-    'work': '20, 30'
+    'work': '20,30'
 }
 
 print('\nParsing.. Ожидаем ответ от сервера.')
@@ -193,7 +196,7 @@ values = []
 
 for student_dict in data:
     val = []
-
+    student_id = student_dict.get('id')
     surname = student_dict.get('surname')
     firstname = student_dict.get('firstname')
     patronymic = student_dict.get('patronymic')
@@ -201,12 +204,17 @@ for student_dict in data:
     students.append(student_name)
 
     exercises = student_dict.get('exercises')  # Получаем список с домашними заданиями ученика
-    for i in exercises:
-        if i.get('light') == 'text-gray':
-            val.append('-')
-        if i.get('light') == 'text-green':
+    for pos, i in enumerate(exercises, 1):
+        light = i.get('light')
+        if light == 'text-gray':
+            val.append('')
+        if light == 'text-green':
             val.append(f'{i.get("average"):.2f}')
-        if i.get('light') == 'text-red':
+        if light == 'text-red':
+            file = s.get(files_url.format(card_id, i.get('id'), student_id))
+            with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
+                archive.extractall('homework_files')
+            print(f'{student_name}: ДЗ №{pos} загружено.')
             val.append('Сдано')
     values.append(val)
 
