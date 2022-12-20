@@ -16,6 +16,7 @@ load_dotenv()
 NAME = os.getenv('NAME')
 LOGIN = os.getenv('LOGIN')
 PASSWD = os.getenv('PASSWORD')
+IS_LOAD = True if os.getenv('IS_LOAD') == 'True' else False
 FULL_NAME = None
 
 key_teacher = None
@@ -209,10 +210,11 @@ for student_dict in data:
         if light == 'text-green':
             val.append(f'{i.get("average"):.2f}')
         if light == 'text-red':
-            file = s.get(files_url.format(card_id, i.get('id'), student_id))
-            with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
-                archive.extractall('homework_files')
-            print(f'{student_name}: ДЗ №{pos} загружено.')
+            if IS_LOAD:
+                file = s.get(files_url.format(card_id, i.get('id'), student_id))
+                with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
+                    archive.extractall('homework_files')
+                print(f'{student_name}: ДЗ №{pos} загружено.')
             val.append('Сдано')
     values.append(val)
 
