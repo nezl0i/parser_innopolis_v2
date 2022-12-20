@@ -32,8 +32,6 @@ path = "//div[@class='events-left-block w-100 col-lg-6 mb-4xl']"
 with open('version', encoding='utf8') as f:
     VERSION = f.read()
 
-# Ссылка на файл из журнала https://learn.innopolis.university/Instructors/Trainings/77af0642-e60e-4d8d-2f2f-08da7915eec2/Results/Files?work=00000000-0000-0000-0000-000000000000&exercise=70f7448d-16fc-4b0c-b181-08da79d25cfe&student=c0d85dbb-a41c-4e7e-a32b-08dac31db6c3
-# Ссылка на файл из ДЗ https://learn.innopolis.university/files/f7142304477a46849537226f361c8528.py
 base_url = 'https://learn.innopolis.university'
 instructors_url = 'https://learn.innopolis.university/Instructors'
 trainings_url = 'https://learn.innopolis.university/api/instructors/trainings'
