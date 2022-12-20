@@ -184,6 +184,7 @@ with open(os.path.join(f'{events_path}', f"{FULL_NAME}.json"), 'w', encoding='ut
 # ========================================================
 #      Парсим json и формируем журнал в формате xlsx
 # ========================================================
+print('Parsing.. Формируем журнал.')
 data = response.json().get('data')
 
 columns = []
