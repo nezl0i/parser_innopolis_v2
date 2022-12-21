@@ -90,7 +90,7 @@ print(f"\nУ вас {len(dom)} модуля.")
 print('=' * 50)
 
 for i in range(len(cards)):
-    print(f'{i}. {list(cards[i].keys())[0]}')
+    print(f'{i}. {list(cards[i].keys())[0].split(" (онлайн)")[0]}')
 
 print('=' * 50)
 
@@ -206,6 +206,22 @@ for student_dict in data:
     exercises = student_dict.get('exercises')  # Получаем список с домашними заданиями ученика
     for pos, i in enumerate(exercises, 1):
         light = i.get('light')
+        match light:
+            case 'text-gray':
+                val.append('')
+            case 'text-green':
+                val.append(f'{i.get("average"):.2f}')
+            case 'text-red':
+                if IS_LOAD:
+                    file = s.get(files_url.format(card_id, i.get('id'), student_id))
+                    with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
+                        archive.extractall('homework_files')
+                    print(f'{student_name}: ДЗ №{pos} загружено.')
+                val.append('Сдано')
+        # ================================
+        #       Alternatives
+        # ================================
+        """
         if light == 'text-gray':
             val.append('')
         if light == 'text-green':
@@ -217,6 +233,8 @@ for student_dict in data:
                     archive.extractall('homework_files')
                 print(f'{student_name}: ДЗ №{pos} загружено.')
             val.append('Сдано')
+        
+        """
     values.append(val)
 
 df = pd.DataFrame(values, index=students, columns=columns)
