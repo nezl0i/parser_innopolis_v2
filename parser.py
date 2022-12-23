@@ -193,8 +193,13 @@ for i in range(1, len(data[0].get('exercises')) + 1):
 
 students = []
 values = []
+verified = 0
+pending_verification = 0
+count_homework = 0
+count_student = 0
 
 for student_dict in data:
+    count_student += 1
     val = []
     student_id = student_dict.get('id')
     surname = student_dict.get('surname')
@@ -205,12 +210,14 @@ for student_dict in data:
 
     exercises = student_dict.get('exercises')  # Получаем список с домашними заданиями ученика
     for pos, i in enumerate(exercises, 1):
+        count_homework += 1
         light = i.get('light')
         match light:
             case 'text-gray':
                 val.append('')
             case 'text-green':
                 val.append(f'{i.get("average"):.2f}')
+                verified += 1
             case 'text-red':
                 if IS_LOAD:
                     file = s.get(files_url.format(card_id, i.get('id'), student_id))
@@ -218,6 +225,7 @@ for student_dict in data:
                         archive.extractall('homework_files')
                     print(f'{student_name}: ДЗ №{pos} загружено.')
                 val.append('Сдано')
+                pending_verification += 1
         # ================================
         #       Alternatives
         # ================================
@@ -236,9 +244,15 @@ for student_dict in data:
         
         """
     values.append(val)
-
+percent_verified = f'{(verified*100)/count_homework:.2f}'
 df = pd.DataFrame(values, index=students, columns=columns)
 df.to_excel(os.path.join(f'{xlsx_path}', f'{card_names}.xlsx'),
             sheet_name='events')  # Название файла по наименованию направления
 # df.to_excel(os.path.join(f'{xlsx_path}', f'{FULL_NAME}.xlsx'), sheet_name='events') # Название файла по преподавателю
+print('='*50)
+print(f'Общее количество учеников - {count_student}')
+print(f'Общее количество ДЗ - {count_homework}')
+print(f'Количество проверенных работ - {verified} ({percent_verified}%)')
+print(f'Ожидают проверки - {pending_verification}')
+print('='*50)
 print('Parsing.. Done.')
