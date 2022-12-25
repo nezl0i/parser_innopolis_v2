@@ -29,14 +29,15 @@ events_path = os.path.join(pathlib.Path.cwd(), 'json', 'events')
 xlsx_path = os.path.join(pathlib.Path.cwd(), 'EXCEL')
 
 path = "//div[@class='events-left-block w-100 col-lg-6 mb-4xl']"
+zero_key = '00000000-0000-0000-0000-000000000000'
 
 with open('version', encoding='utf8') as f:
     VERSION = f.read()
 
 base_url = 'https://learn.innopolis.university'
-instructors_url = 'https://learn.innopolis.university/Instructors'
+instructors_url = 'https://learn.innopolis.university/Instructors/Trainings/{}/ProgressLightweight'
 trainings_url = 'https://learn.innopolis.university/api/instructors/trainings'
-files_url = 'https://learn.innopolis.university/Instructors/Trainings/{}/Results/Files?work=00000000-0000-0000-0000-000000000000&exercise={}&student={}'
+files_url = 'https://learn.innopolis.university/Instructors/Trainings/{}/Results/Files?work={}&exercise={}&student={}'
 
 print(f'Версия парсера {VERSION}')
 print('Парсер запущен ...')
@@ -171,7 +172,17 @@ data = {
 print('\nParsing.. Ожидаем ответ от сервера.')
 
 # Фильтруем страницу
+themes = []
+
 try:
+    response_2 = s.get(instructors_url.format(card_id), params={'work': '20,30'})
+    dom_themes = html.fromstring(response_2.content).xpath('//th[contains(@class, "exercise")]')
+    for theme in dom_themes:
+
+        theme_title = theme.xpath('@title')[0]
+        theme_number = theme.xpath('text()')[0]
+        themes.append(f'{theme_number}. {theme_title.replace(" Домашнее задание", "")}')
+
     response = s.post(f'{trainings}/ProgressLightweight', params=data)
     print('Parsing.. Ответ получен.')
 except ConnectionError:
@@ -220,32 +231,18 @@ for student_dict in data:
                 verified += 1
             case 'text-red':
                 if IS_LOAD:
-                    file = s.get(files_url.format(card_id, i.get('id'), student_id))
+                    file = s.get(files_url.format(card_id, zero_key, i.get('id'), student_id))
                     with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
                         archive.extractall('homework_files')
                     print(f'{student_name}: ДЗ №{pos} загружено.')
                 val.append('Сдано')
                 pending_verification += 1
-        # ================================
-        #       Alternatives
-        # ================================
-        """
-        if light == 'text-gray':
-            val.append('')
-        if light == 'text-green':
-            val.append(f'{i.get("average"):.2f}')
-        if light == 'text-red':
-            if IS_LOAD:
-                file = s.get(files_url.format(card_id, i.get('id'), student_id))
-                with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
-                    archive.extractall('homework_files')
-                print(f'{student_name}: ДЗ №{pos} загружено.')
-            val.append('Сдано')
-        
-        """
     values.append(val)
+
 percent_verified = f'{(verified*100)/count_homework:.2f}'
-df = pd.DataFrame(values, index=students, columns=columns)
+
+# В качестве заголовка можно использовать columns=columns (числовое отображение)
+df = pd.DataFrame(values, index=students, columns=themes)
 df.to_excel(os.path.join(f'{xlsx_path}', f'{card_names}.xlsx'),
             sheet_name='events')  # Название файла по наименованию направления
 # df.to_excel(os.path.join(f'{xlsx_path}', f'{FULL_NAME}.xlsx'), sheet_name='events') # Название файла по преподавателю
