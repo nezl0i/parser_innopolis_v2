@@ -178,7 +178,6 @@ try:
     response_2 = s.get(instructors_url.format(card_id), params={'work': '20,30'})
     dom_themes = html.fromstring(response_2.content).xpath('//th[contains(@class, "exercise")]')
     for theme in dom_themes:
-
         theme_title = theme.xpath('@title')[0]
         theme_number = theme.xpath('text()')[0]
         themes.append(f'{theme_number}. {theme_title.replace(" Домашнее задание", "")}')
@@ -239,17 +238,26 @@ for student_dict in data:
                 pending_verification += 1
     values.append(val)
 
-percent_verified = f'{(verified*100)/count_homework:.2f}'
+percent_verified = f'{(verified * 100) / count_homework:.2f}'
 
-# В качестве заголовка можно использовать columns=columns (числовое отображение)
-df = pd.DataFrame(values, index=students, columns=themes)
-df.to_excel(os.path.join(f'{xlsx_path}', f'{card_names}.xlsx'),
-            sheet_name='events')  # Название файла по наименованию направления
-# df.to_excel(os.path.join(f'{xlsx_path}', f'{FULL_NAME}.xlsx'), sheet_name='events') # Название файла по преподавателю
-print('='*50)
+modules_file_name = os.path.join(f'{xlsx_path}', f'{card_names}.xlsx')  # Название файла по наименованию направления
+teacher_file_name = os.path.join(f'{xlsx_path}', f'{FULL_NAME}.xlsx')   # Название файла по преподавателю
+
+with pd.ExcelWriter(modules_file_name, engine='xlsxwriter') as writer:
+    # В качестве заголовка можно использовать columns=columns (числовое отображение)
+    df = pd.DataFrame(values, index=students, columns=themes)
+    df.to_excel(writer, sheet_name='events')
+    sheet = writer.sheets['events']
+    cell_format = writer.book.add_format({'text_wrap': True, 'align': 'center', 'valign': 'vcenter'})
+    writer.sheets['events'].set_column(0, 0, 55)    # Ширина первой солонки
+    writer.sheets['events'].set_column(1, len(themes), 15, cell_format=cell_format)  # Ширина остальных колонок
+    writer.sheets['events'].set_row(0, 60)  # Высота первого ряда
+    sheet.write_row(0, 1, df.columns, cell_format)
+
+print('=' * 50)
 print(f'Общее количество учеников - {count_student}')
 print(f'Общее количество ДЗ - {count_homework}')
 print(f'Количество проверенных работ - {verified} ({percent_verified}%)')
 print(f'Ожидают проверки - {pending_verification}')
-print('='*50)
+print('=' * 50)
 print('Parsing.. Done.')
