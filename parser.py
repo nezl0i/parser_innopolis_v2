@@ -180,7 +180,7 @@ try:
     for theme in dom_themes:
         theme_title = theme.xpath('@title')[0]
         theme_number = theme.xpath('text()')[0]
-        themes.append(f'{theme_number}. {theme_title.replace(" Домашнее задание", "")}')
+        themes.append(f'{theme_number}. {theme_title.replace(" Домашнее задание", "").replace("..", ".")}')
 
     response = s.post(f'{trainings}/ProgressLightweight', params=data)
     print('Parsing.. Ответ получен.')
@@ -197,9 +197,7 @@ with open(os.path.join(f'{events_path}', f"{FULL_NAME}.json"), 'w', encoding='ut
 print('Parsing.. Формируем журнал.')
 data = response.json().get('data')
 
-columns = []
-for i in range(1, len(data[0].get('exercises')) + 1):
-    columns.append(i)
+columns = [i for i in range(1, len(data[0].get('exercises')) + 1)]
 
 students = []
 values = []
