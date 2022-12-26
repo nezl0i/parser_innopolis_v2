@@ -249,7 +249,7 @@ with pd.ExcelWriter(modules_file_name, engine='xlsxwriter') as writer:
     df.to_excel(writer, sheet_name='events')
     sheet = writer.sheets['events']
     cell_format = writer.book.add_format({'text_wrap': True, 'align': 'center', 'valign': 'vcenter'})
-    sheet.set_column(0, 0, 55)    # Ширина первой солонки
+    sheet.set_column(0, 0, 55)    # Ширина первой колонки
     sheet.set_column(1, len(themes), 15, cell_format=cell_format)  # Ширина остальных колонок
     sheet.set_row(0, 60)  # Высота первого ряда
     sheet.write_row(0, 1, df.columns, cell_format)
