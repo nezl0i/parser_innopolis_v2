@@ -190,7 +190,8 @@ try:
         themes.append(f'{theme_number}. {theme_title.replace(" Домашнее задание", "").replace("..", ".")}')
 
     response = s.post(f'{trainings}/ProgressLightweight', params=data)
-    print('Parsing.. Ответ получен.')
+    seconds = response.elapsed.total_seconds()
+    print(f'Parsing.. Ответ получен за {seconds} сек.')
 except ConnectionError:
     print('Вышло время ожидания.... (')
 
