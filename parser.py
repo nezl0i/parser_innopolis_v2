@@ -33,7 +33,7 @@ files_path = 'homework_files'
 try:
     shutil.rmtree(files_path)
 except OSError as e:
-    print("Error: %s : %s" % (files_path, e.strerror))
+    pass
 
 path = "//div[@class='events-left-block w-100 col-lg-6 mb-4xl']"
 zero_key = '00000000-0000-0000-0000-000000000000'
