@@ -1,15 +1,16 @@
 import os
+import io
 import sys
 import json
+import shutil
 import pathlib
+import zipfile
 import pandas as pd
 from lxml import html
 from pathlib import Path
 from authorization import auth
 from dotenv import load_dotenv
 from requests.exceptions import ConnectionError
-import io
-import zipfile
 
 load_dotenv()
 
@@ -27,6 +28,12 @@ Path(pathlib.Path.cwd(), "EXCEL").mkdir(parents=True, exist_ok=True)
 teachers_path = os.path.join(pathlib.Path.cwd(), 'json', 'teachers')
 events_path = os.path.join(pathlib.Path.cwd(), 'json', 'events')
 xlsx_path = os.path.join(pathlib.Path.cwd(), 'EXCEL')
+files_path = 'homework_files'
+
+try:
+    shutil.rmtree(files_path)
+except OSError as e:
+    print("Error: %s : %s" % (files_path, e.strerror))
 
 path = "//div[@class='events-left-block w-100 col-lg-6 mb-4xl']"
 zero_key = '00000000-0000-0000-0000-000000000000'
@@ -217,6 +224,7 @@ for student_dict in data:
     students.append(student_name)
 
     exercises = student_dict.get('exercises')  # Получаем список с домашними заданиями ученика
+
     for pos, i in enumerate(exercises, 1):
         count_homework += 1
         light = i.get('light')
@@ -230,7 +238,7 @@ for student_dict in data:
                 if IS_LOAD:
                     file = s.get(files_url.format(card_id, zero_key, i.get('id'), student_id))
                     with file, zipfile.ZipFile(io.BytesIO(file.content)) as archive:
-                        archive.extractall('homework_files')
+                        archive.extractall(files_path)
                     print(f'{student_name}: ДЗ №{pos} загружено.')
                 val.append('Сдано')
                 pending_verification += 1
