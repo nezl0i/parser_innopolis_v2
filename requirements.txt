@@ -20,7 +20,7 @@ PySocks
 python-dateutil
 python-dotenv
 pytz==2022.7
-requests==2.28.1
+requests==2.31.0
 six
 sniffio
 sortedcontainers
